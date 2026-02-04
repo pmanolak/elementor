@@ -68,6 +68,8 @@ class Typography extends Base {
 
 		$value = $item['value'];
 
+		unset( $value['_id'], $value['title'] );
+
 		foreach ( $value as $key => $dirty_value ) {
 			$db_format[ $key ] = is_string( $dirty_value ) ? sanitize_text_field( $dirty_value ) : $dirty_value ?? '';
 		}

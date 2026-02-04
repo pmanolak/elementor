@@ -52,41 +52,45 @@ class Test_Colors extends Base {
 	}
 
 	public function test_color_value_sanitization() {
-		// Test invalid color values that should be sanitized/rejected
 		$test_cases = [
 			[
 				'input' => '#ff0000',
 				'expected' => '#ff0000',
-				'description' => 'Valid hex color should pass through'
+				'description' => 'Valid hex color should pass through unchanged'
 			],
 			[
-				'input' => 'ff0000',
-				'expected' => null, // sanitize_hex_color returns null for invalid format
-				'description' => 'Hex without # should be rejected'
-			],
-			[
-				'input' => '#fff',
-				'expected' => '#fff',
-				'description' => 'Valid short hex color should pass through'
+				'input' => 'rgb(255, 0, 0)',
+				'expected' => 'rgb(255, 0, 0)',
+				'description' => 'RGB color format should pass through'
 			],
 			[
 				'input' => '<script>alert("xss")</script>',
-				'expected' => null,
-				'description' => 'Malicious script should be rejected'
+				'expected' => 'alert("xss")',
+				'description' => 'Malicious script tags should be stripped'
+			],
+			[
+				'input' => '<b>red</b>',
+				'expected' => 'red',
+				'description' => 'HTML tags should be stripped'
+			],
+			[
+				'input' => "color with\nnewlines\rand\ttabs",
+				'expected' => 'color with newlines and tabs',
+				'description' => 'Newlines and tabs should be sanitized'
 			],
 			[
 				'input' => '#gggggg',
-				'expected' => null,
-				'description' => 'Invalid hex characters should be rejected'
+				'expected' => '#gggggg',
+				'description' => 'Invalid hex colors are not validated, pass through as text'
 			],
 			[
-				'input' => '#ff00',
-				'expected' => null,
-				'description' => 'Invalid hex length should be rejected'
+				'input' => '  #ffffff  ',
+				'expected' => '#ffffff',
+				'description' => 'Leading and trailing whitespace should be trimmed'
 			],
 		];
 	
-		foreach ($test_cases as $test_case) {
+		foreach ( $test_cases as $test_case ) {
 			$id = (string) rand();
 			$args = [
 				'id' => $id,
@@ -94,25 +98,21 @@ class Test_Colors extends Base {
 				'value' => $test_case['input'],
 			];
 	
-			// Create
-			$this->manager->run_endpoint($this->get_endpoint($id), $args, \WP_REST_Server::CREATABLE);
+			$this->manager->run_endpoint( $this->get_endpoint( $id ), $args, \WP_REST_Server::CREATABLE );
 	
-			// Get the kit and check the saved value
-			$kit = Plugin::$instance->documents->get(Plugin::$instance->kits_manager->get_active_id(), false);
-			$colors = $kit->get_settings('custom_colors');
+			$kit = Plugin::$instance->documents->get( Plugin::$instance->kits_manager->get_active_id(), false );
+			$colors = $kit->get_settings( 'custom_colors' );
 	
-			// Find the color we just created
 			$created_color = null;
-			foreach ($colors as $color) {
-				if ($color['_id'] === $id) {
+			foreach ( $colors as $color ) {
+				if ( $color['_id'] === $id ) {
 					$created_color = $color;
 					break;
 				}
 			}
 	
-			$this->assertNotNull($created_color, 'Color should be created: ' . $test_case['description']);
+			$this->assertNotNull( $created_color, 'Color should be created: ' . $test_case['description'] );
 			
-			// Check if the color value was properly sanitized
 			$actual_value = $created_color['color'] ?? null;
 			$this->assertEquals(
 				$test_case['expected'], 

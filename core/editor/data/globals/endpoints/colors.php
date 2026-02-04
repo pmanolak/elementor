@@ -45,7 +45,7 @@ class Colors extends Base {
 		return [
 			'_id' => $item['id'],
 			'title' => sanitize_text_field( $item['title'] ?? '' ),
-			'color' => sanitize_hex_color( $item['value'] ?? '' ),
+			'color' => sanitize_text_field( $item['value'] ?? '' ),
 		];
 	}
 }
